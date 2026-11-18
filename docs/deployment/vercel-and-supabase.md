@@ -4,7 +4,7 @@
 1. Create a Supabase project in the required region.
 2. Open Project Settings → API.
 3. Copy the Project URL and publishable key.
-4. Do not expose the `service_role` key in the browser or in any `NEXT_PUBLIC_` variable.
+4. Do not expose the `service_role` key in the browser or in any `VITE_` variable.
 
 ## 2. Apply database scripts
 1. Open Supabase SQL Editor.
@@ -14,9 +14,9 @@
 
 ## 3. Local configuration
 Copy `.env.example` to `.env.local` and populate:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- `NEXT_PUBLIC_DEMO_MODE=false` once authentication is configured and tested.
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+- `VITE_DEMO_MODE=false` once authentication is configured and tested.
 
 ## 4. Run locally
 ```bash

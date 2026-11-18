@@ -2,7 +2,7 @@
 
 1. Apply `database/migrations/0002_connection_management.sql` after 0001 in Supabase.
 2. Patch files into the Milestone 1 project root.
-3. Add optional `.env.local` value `NEXT_PUBLIC_DEMO_TENANT_ID=<tenant UUID>` for pre-filling the tenant input. It is not a secret.
+3. Add optional `.env.local` value `VITE_DEMO_TENANT_ID=<tenant UUID>` for pre-filling the tenant input. It is not a secret.
 4. `npm install`
 5. `npm run typecheck`
 6. `npm run lint`

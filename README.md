@@ -45,7 +45,7 @@ npm run build
 ## Important
 - The default local configuration is a demo shell.
 - No live source connector is implemented in Milestone 1.
-- Do not put source passwords, API secrets or Supabase service-role keys in client-side code or `NEXT_PUBLIC_` variables.
+- Do not put source passwords, API secrets or Supabase service-role keys in client-side code or `VITE_` variables.
 - Vercel hosts the control plane. Long-running data extraction belongs in a separate worker runtime.
 - Review `docs/deployment/vercel-and-supabase.md` before deployment.
 

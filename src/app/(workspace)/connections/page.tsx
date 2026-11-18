@@ -3,7 +3,10 @@
 import { FormEvent, useEffect, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { connectorCatalog } from "@/lib/connectors/catalog";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  createSupabaseBrowserClient,
+  isSupabaseBrowserConfigured
+} from "@/lib/supabase/client";
 
 type Tenant = { id: string; name: string };
 type Connection = {
@@ -60,6 +63,12 @@ export default function Page() {
   }
 
   useEffect(() => {
+    if (!isSupabaseBrowserConfigured()) {
+      setLoading(false);
+      setError("");
+      return;
+    }
+
     let active = true;
     async function loadTenants() {
       try {
@@ -166,10 +175,15 @@ export default function Page() {
         title="Connections"
         description="Manage source-system endpoints, authentication references and connection health."
       />
-      {!process.env.NEXT_PUBLIC_SUPABASE_URL && (
+      {!isSupabaseBrowserConfigured() && (
         <section className="panel" role="alert">
           <h2>Supabase setup required</h2>
-          <p className="muted">Add Supabase environment variables and apply migrations 0001 and 0002 before using connection management.</p>
+          <p className="muted">
+            Create <code>.env.local</code> from <code>.env.example</code>, set
+            <code>VITE_SUPABASE_URL</code> and
+            <code>VITE_SUPABASE_PUBLISHABLE_KEY</code>, then restart
+            <code>npm run dev</code>. SQL migrations do not configure Next.js environment variables.
+          </p>
         </section>
       )}
       {error && <section className="panel" role="alert"><p>{error}</p></section>}
