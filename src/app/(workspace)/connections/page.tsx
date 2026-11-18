@@ -180,8 +180,8 @@ export default function Page() {
           <h2>Supabase setup required</h2>
           <p className="muted">
             Create <code>.env.local</code> from <code>.env.example</code>, set
-            <code>VITE_SUPABASE_URL</code> and
-            <code>VITE_SUPABASE_PUBLISHABLE_KEY</code>, then restart
+            <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
+            <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code>, then restart{" "}
             <code>npm run dev</code>. SQL migrations do not configure Next.js environment variables.
           </p>
         </section>
