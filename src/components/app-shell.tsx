@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity, ArrowLeftRight, Boxes, Cable, ClipboardCheck,
-  Database, LayoutDashboard, Settings, Workflow
+  Database, LayoutDashboard, Settings, Workflow, ScanSearch
 } from "lucide-react";
 import { isNavigationActive } from "@/lib/navigation";
 
@@ -12,6 +12,7 @@ const navigation = [
   { label: "Overview", href: "/overview", icon: LayoutDashboard },
   { label: "Connector catalogue", href: "/connectors", icon: Cable },
   { label: "Connections", href: "/connections", icon: ArrowLeftRight },
+  { label: "Data Object Explorer", href: "/data-explorer", icon: ScanSearch },
   { label: "Integration designer", href: "/integrations", icon: Workflow },
   { label: "Mapping studio", href: "/mappings", icon: Boxes },
   { label: "Jobs & schedules", href: "/jobs", icon: Activity },
