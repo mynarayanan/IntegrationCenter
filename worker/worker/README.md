@@ -16,7 +16,7 @@ SFTP, authenticated REST, Snowflake, Oracle Cloud EPM, Anaplan, Board and TM1 ar
 
 ## Configure
 
-Copy .env.example to .env and set SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, WORKER_ID, CSV_ROOT, and CONNECTOR_ALLOWED_HOSTS. Keep the service-role key in your deployment platform secret manager. Do not commit .env.
+Copy worker/.env.example to worker/.env and set SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, WORKER_ID, CSV_ROOT, and CONNECTOR_ALLOWED_HOSTS. The worker loads worker/.env automatically for local development. Keep the service-role key in your deployment platform secret manager. Do not commit .env.
 
 For REST, connection config must contain baseUrl and optional relative endpoint. The hostname must be in CONNECTOR_ALLOWED_HOSTS. Requests are HTTPS-only, redirects are disabled, DNS results must be public, and the response is limited to 5 MB. This adapter does not support authentication.
 
@@ -27,17 +27,10 @@ For CSV, mount an approved directory at CSV_ROOT and set connection config fileP
     python -m venv .venv
     . .venv/bin/activate
     pip install -r worker/requirements.txt
-    export PYTHONPATH=worker
-    export SUPABASE_URL="https://YOUR_PROJECT.supabase.co"
-    export SUPABASE_SERVICE_ROLE_KEY="YOUR_SECRET"
-    export WORKER_ID="integration-worker-local-01"
-    export CSV_ROOT="./worker/inbound"
-    export CONNECTOR_ALLOWED_HOSTS="api.example.com"
     uvicorn worker.api:app --app-dir worker --host 0.0.0.0 --port 8080
 
 Run the queue consumer in a second terminal with the same environment:
 
-    export PYTHONPATH=worker
     python -m worker.runner
 
 The API and runner are separate processes. GET /health is liveness; GET /ready validates required configuration only.
