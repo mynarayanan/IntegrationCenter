@@ -18,7 +18,7 @@ def test_csv_discovery_reads_headers_and_counts_rows(tmp_path):
     assert result[0]["estimated_row_count"] == 2
     assert result[0]["schema_definition"] == [
         {"name": "account", "dataType": "string"},
-        {"name": "amount", "dataType": "string"},
+        {"name": "amount", "dataType": "integer"},
     ]
 
 
