@@ -1,7 +1,7 @@
 {
   "project": "Integration Centre",
-  "milestone": "3",
-  "version": "0.3.0",
+  "milestone": "4 (foundation)",
+  "version": "0.4.0",
   "generated_files": [
     ".env.example",
     ".gitignore",
@@ -51,7 +51,24 @@
     "tests/unit/catalog.test.ts",
     "tests/unit/profile-csv.test.ts",
     "tsconfig.json",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    ".dockerignore",
+    "database/migrations/0004_trusted_worker.sql",
+    "docs/deployment/milestone-4-worker-deployment.md",
+    "docs/testing/milestone-4-worker-test-plan.md",
+    "worker/.env.example",
+    "worker/Dockerfile",
+    "worker/requirements.txt",
+    "worker/worker/README.md",
+    "worker/worker/__init__.py",
+    "worker/worker/api.py",
+    "worker/worker/config.py",
+    "worker/worker/connectors.py",
+    "worker/worker/db.py",
+    "worker/worker/runner.py",
+    "worker/tests/test_connectors.py",
+    "worker/tests/test_config.py",
+    "worker/inbound/sample-finance.csv"
   ],
-  "test_execution_status": "M3 test definitions added; automated tests, build and Supabase integration checks have not yet been executed."
+  "test_execution_status": "M4 code and test definitions committed to milestone-4-trusted-worker; automated tests, Docker build, SQL migration execution and live Supabase worker execution have not yet been run."
 }
