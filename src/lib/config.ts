@@ -14,7 +14,13 @@ export const appConfig = {
 };
 
 export function assertProductionConfiguration() {
-  if (process.env.NODE_ENV === "production" && appConfig.demoMode) {
+  if (process.env.NODE_ENV !== "production") return;
+  if (appConfig.demoMode) {
     throw new Error("Demo mode must not be enabled in production.");
+  }
+  if (!appConfig.supabaseConfigured) {
+    throw new Error(
+      "NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are required in production."
+    );
   }
 }

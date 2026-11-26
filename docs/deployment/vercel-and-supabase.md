@@ -14,9 +14,12 @@
 
 ## 3. Local configuration
 Copy `.env.example` to `.env.local` and populate:
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_PUBLISHABLE_KEY`
-- `VITE_DEMO_MODE=false` once authentication is configured and tested.
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `NEXT_PUBLIC_DEMO_MODE=false`
+
+Production also requires both Supabase variables. `NEXT_PUBLIC_DEMO_MODE=true` is rejected
+by the application startup guard.
 
 ## 4. Run locally
 ```bash

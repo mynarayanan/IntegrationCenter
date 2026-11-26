@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   Activity, ArrowLeftRight, Boxes, Cable, ClipboardCheck,
   Database, LayoutDashboard, Settings, Workflow, ScanSearch
 } from "lucide-react";
 import { isNavigationActive } from "@/lib/navigation";
+import { createSupabaseBrowserClient, isSupabaseBrowserConfigured } from "@/lib/supabase/client";
 
 const navigation = [
   { label: "Overview", href: "/overview", icon: LayoutDashboard },
@@ -23,6 +25,15 @@ const navigation = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function signOut() {
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    router.replace("/sign-in");
+    router.refresh();
+  }
+
   return (
     <div className="app-frame">
       <aside className="sidebar">
@@ -50,7 +61,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="main-area">
         <header className="topbar">
           <div><span className="eyebrow">FP&A PLATFORM</span><strong>Integration workspace</strong></div>
-          <div className="topbar-right"><span className="env-pill">DEMO ENVIRONMENT</span><span className="avatar">IC</span></div>
+          <div className="topbar-right">
+            <span className="env-pill">{isSupabaseBrowserConfigured() ? "SECURE ENVIRONMENT" : "DEMO ENVIRONMENT"}</span>
+            {isSupabaseBrowserConfigured() ? (
+              <button type="button" className="secondary-button sign-out-button" onClick={() => void signOut()}>Sign out</button>
+            ) : <span className="avatar">IC</span>}
+          </div>
         </header>
         <div className="page-content">{children}</div>
       </main>
