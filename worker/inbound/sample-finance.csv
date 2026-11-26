@@ -1,0 +1,6 @@
+entity,account,period,scenario,amount,currency
+US01,Revenue,2026-10,Actual,1250000,USD
+US01,Cost of Sales,2026-10,Actual,710000,USD
+US01,Operating Expenses,2026-10,Actual,285000,USD
+UK01,Revenue,2026-10,Actual,840000,GBP
+UK01,Cost of Sales,2026-10,Actual,492000,GBP
