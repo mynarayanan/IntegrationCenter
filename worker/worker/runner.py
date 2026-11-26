@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from worker.config import Settings
@@ -14,8 +15,15 @@ logging.basicConfig(
 logger = logging.getLogger("integration-centre.worker")
 
 
-def claim_job(client: Any, worker_id: str) -> dict[str, Any] | None:
-    result = client.rpc("claim_next_discovery_job", {"p_worker_id": worker_id}).execute()
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def claim_job(client: Any, worker_id: str, lease_seconds: int = 600) -> dict[str, Any] | None:
+    result = client.rpc(
+        "claim_next_discovery_job",
+        {"p_worker_id": worker_id, "p_lease_seconds": lease_seconds},
+    ).execute()
     data = result.data
     if isinstance(data, list):
         return data[0] if data else None
@@ -53,7 +61,7 @@ def process_job(client: Any, job: dict[str, Any], settings: Settings) -> None:
             "status": "completed",
             "result_summary": {"objects_discovered": len(objects), "worker_id": settings.worker_id},
             "error_message": None,
-            "completed_at": "now()",
+            "completed_at": _utc_now(),
             "locked_at": None,
             "locked_by": None,
             "heartbeat_at": None,
@@ -63,11 +71,15 @@ def process_job(client: Any, job: dict[str, Any], settings: Settings) -> None:
     except Exception as exc:
         message = str(exc)[:1000]
         attempts = int(job.get("attempt_count") or 1)
-        terminal = attempts >= settings.max_job_attempts
+        max_attempts = int(job.get("max_attempts") or settings.max_job_attempts)
+        terminal = attempts >= max_attempts
+        delay_seconds = min(300, 5 * (2 ** max(0, attempts - 1)))
+        next_attempt = datetime.now(timezone.utc) + timedelta(seconds=delay_seconds)
         update = {
             "status": "failed" if terminal else "queued",
             "error_message": message,
-            "available_at": "now()" if terminal else None,
+            "available_at": _utc_now() if terminal else next_attempt.isoformat(),
+            "completed_at": _utc_now() if terminal else None,
             "locked_at": None,
             "locked_by": None,
             "heartbeat_at": None,
@@ -76,7 +88,8 @@ def process_job(client: Any, job: dict[str, Any], settings: Settings) -> None:
             "status", "running"
         ).eq("locked_by", settings.worker_id).execute()
         _audit(client, job, "discovery_job.failed" if terminal else "discovery_job.retry_scheduled", {
-            "error": message, "attempt": attempts, "terminal": terminal
+            "error": message, "attempt": attempts, "terminal": terminal,
+            "retry_delay_seconds": 0 if terminal else delay_seconds,
         })
         logger.exception("job_failed job_id=%s attempt=%s terminal=%s", job_id, attempts, terminal)
 
@@ -101,7 +114,7 @@ def run_forever() -> None:
     logger.info("worker_started worker_id=%s", settings.worker_id)
     while True:
         try:
-            job = claim_job(client, settings.worker_id)
+            job = claim_job(client, settings.worker_id, settings.lease_seconds)
             if job:
                 process_job(client, job, settings)
             else:
