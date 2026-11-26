@@ -13,7 +13,7 @@ Do not run long-running extraction inside Vercel serverless functions.
 1. Pull branch milestone-4-trusted-worker.
 2. Install Python 3.12 or use the provided Dockerfile.
 3. Apply SQL migrations 0001, 0002, 0003, then 0004.
-4. Set worker secrets in the deployment platform:
+4. For local testing, copy worker/.env.example to worker/.env. The worker loads this file automatically. For hosted deployment, set worker secrets in the deployment platform:
    - SUPABASE_URL
    - SUPABASE_SERVICE_ROLE_KEY
 5. Set operational variables:
