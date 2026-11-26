@@ -1,7 +1,6 @@
 import csv
 import ipaddress
 import json
-import os
 import socket
 from pathlib import Path
 from typing import Any
@@ -15,14 +14,26 @@ class ConnectorError(Exception):
 
 
 def _infer_type(values: list[Any]) -> str:
-    present = [v for v in values if v not in (None, "")]
+    present = [str(v).strip() for v in values if v not in (None, "")]
     if not present:
         return "string"
-    if all(isinstance(v, bool) for v in present):
+    lowered = {v.lower() for v in present}
+    if lowered <= {"true", "false", "yes", "no", "0", "1"} and any(
+        v in {"true", "false", "yes", "no"} for v in lowered
+    ):
         return "boolean"
-    if all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in present):
+    try:
+        parsed_ints = [int(v) for v in present]
+        if all(str(value) == original or original.lstrip("+") == str(value) for value, original in zip(parsed_ints, present)):
+            return "integer"
+    except ValueError:
+        pass
+    try:
+        for value in present:
+            float(value.replace(",", ""))
         return "number"
-    return "string"
+    except ValueError:
+        return "string"
 
 
 def _schema(rows: list[dict[str, Any]]) -> list[dict[str, str]]:
@@ -72,6 +83,8 @@ def _validate_rest_url(url: str, allowed_hosts: tuple[str, ...]) -> None:
     parsed = urlparse(url)
     if parsed.scheme != "https" or not parsed.hostname:
         raise ConnectorError("REST connector requires an HTTPS URL.")
+    if parsed.port not in (None, 443):
+        raise ConnectorError("REST connector permits only the standard HTTPS port.")
     host = parsed.hostname.lower()
     if host not in allowed_hosts:
         raise ConnectorError("REST host is not in CONNECTOR_ALLOWED_HOSTS.")
@@ -103,7 +116,6 @@ def discover_rest(config: dict[str, Any], allowed_hosts: tuple[str, ...]) -> lis
             payload = response.json()
     except (httpx.HTTPError, json.JSONDecodeError) as exc:
         raise ConnectorError(f"REST request failed: {type(exc).__name__}") from exc
-    rows: list[dict[str, Any]]
     if isinstance(payload, list) and all(isinstance(item, dict) for item in payload):
         rows = payload
     elif isinstance(payload, dict) and isinstance(payload.get("data"), list) and all(
@@ -115,6 +127,9 @@ def discover_rest(config: dict[str, Any], allowed_hosts: tuple[str, ...]) -> lis
     else:
         raise ConnectorError("REST response must be a JSON object or an array of objects.")
     object_name = endpoint.strip("/").split("/")[-1] if endpoint.strip("/") else "root"
+    has_row_collection = isinstance(payload, list) or (
+        isinstance(payload, dict) and isinstance(payload.get("data"), list)
+    )
     return [{
         "source_object_key": endpoint or "/",
         "object_name": object_name,
@@ -122,7 +137,7 @@ def discover_rest(config: dict[str, Any], allowed_hosts: tuple[str, ...]) -> lis
         "object_type": "rest_endpoint",
         "description": "JSON endpoint discovered by the trusted worker.",
         "schema_definition": _schema(rows[:1000]),
-        "estimated_row_count": len(rows) if isinstance(payload, list) or (isinstance(payload, dict) and isinstance(payload.get("data"), list)) else None,
+        "estimated_row_count": len(rows) if has_row_collection else None,
     }]
 
 
