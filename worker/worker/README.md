@@ -1,66 +1,69 @@
 # Integration Centre Trusted Worker (M4 foundation)
 
-This is a separately deployable Python worker. Vercel remains the control plane; the worker polls Supabase for jobs and uses a server-side service-role credential. Never put the service-role key in Vercel public variables, browser code, source control, or a customer-visible connection config.
+This is a separately deployable Python service. Vercel remains the control plane; the worker polls Supabase and uses a server-side service-role credential. Never put the service-role key in browser code, source control, Vercel public variables, or a connection config.
 
-## Current M4 scope
+## M4 scope
 
-- Health and readiness endpoints.
+- FastAPI liveness and readiness endpoints.
 - Supabase service-role client.
-- Atomic job claiming through the M4 database RPC.
-- Lease metadata and bounded retry lifecycle.
-- Read-only metadata discovery for:
-  - CSV files mounted beneath CSV_ROOT.
-  - HTTPS JSON REST endpoints whose hostname is explicitly allowlisted.
+- Atomic job claiming using PostgreSQL row locking with SKIP LOCKED.
+- Lease recovery, attempt counters and bounded exponential retry.
+- Read-only metadata discovery for CSV files mounted beneath CSV_ROOT.
+- Read-only HTTPS JSON REST endpoints with an explicit hostname allowlist.
 - Tenant-scoped discovered-object upsert and audit events.
 
-SFTP, authenticated REST secret resolution, cloud file storage, Snowflake, Oracle Cloud EPM, Anaplan, Board and TM1 are not enabled in this foundation release.
+SFTP, authenticated REST, Snowflake, Oracle Cloud EPM, Anaplan, Board and TM1 are not enabled in this foundation release. The profile job type is also not executed yet.
 
 ## Configure
 
-Copy .env.example to .env and set:
+Copy .env.example to .env and set SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, WORKER_ID, CSV_ROOT, and CONNECTOR_ALLOWED_HOSTS. Keep the service-role key in your deployment platform secret manager. Do not commit .env.
 
-- SUPABASE_URL
-- SUPABASE_SERVICE_ROLE_KEY (secret; server-side only)
-- WORKER_ID (unique per worker instance)
-- CSV_ROOT and CONNECTOR_ALLOWED_HOSTS
+For REST, connection config must contain baseUrl and optional relative endpoint. The hostname must be in CONNECTOR_ALLOWED_HOSTS. Requests are HTTPS-only, redirects are disabled, DNS results must be public, and the response is limited to 5 MB. This adapter does not support authentication.
 
-For REST, the connection config must contain baseUrl and optional relative endpoint. The hostname must be in CONNECTOR_ALLOWED_HOSTS. Requests are HTTPS-only, redirects are disabled, and non-public DNS destinations are rejected. This initial adapter does not support authentication. Do not expose sensitive endpoints.
+For CSV, mount an approved directory at CSV_ROOT and set connection config filePath to a relative path inside that mount. The file is limited to 10 MB and 100,000 rows.
 
-For CSV, mount a directory into the container at CSV_ROOT and set connection config.filePath to a relative path within that mount. Do not use arbitrary user-controlled host paths.
-
-## Run locally
-
-From the repository root:
+## Run locally (from repository root)
 
     python -m venv .venv
     . .venv/bin/activate
     pip install -r worker/requirements.txt
-    cp worker/.env.example worker/.env
-    # Export the variables from worker/.env in your shell; do not commit the file.
-    uvicorn worker.api:app --host 0.0.0.0 --port 8080
+    export PYTHONPATH=worker
+    export SUPABASE_URL="https://YOUR_PROJECT.supabase.co"
+    export SUPABASE_SERVICE_ROLE_KEY="YOUR_SECRET"
+    export WORKER_ID="integration-worker-local-01"
+    export CSV_ROOT="./worker/inbound"
+    export CONNECTOR_ALLOWED_HOSTS="api.example.com"
+    uvicorn worker.api:app --app-dir worker --host 0.0.0.0 --port 8080
+
+Run the queue consumer in a second terminal with the same environment:
+
+    export PYTHONPATH=worker
     python -m worker.runner
 
-The API and runner are separate processes. GET /health is liveness; GET /ready checks required configuration only.
+The API and runner are separate processes. GET /health is liveness; GET /ready validates required configuration only.
 
-## Docker
+## Docker (build from repository root)
 
-Build from the repository root:
+    docker build -f worker/Dockerfile -t integration-centre-worker:0.4.0 .
 
-    docker build -f worker/Dockerfile -t integration-centre-worker:0.4.0 worker
+Run the API and runner as separate containers/processes in production. Mount inbound files read-only at /data/inbound for CSV. Supply secrets using the hosting platform secret manager.
 
-Run the API and runner as separate containers/processes in production. Mount inbound files read-only at /data/inbound when using CSV. Supply secrets through the deployment platform's secret manager.
+## Database migration
+
+Apply database/migrations/0004_trusted_worker.sql after 0001, 0002 and 0003. It adds attempt/lease columns and the claim_next_discovery_job RPC. The function is executable only by Supabase service_role.
 
 ## Job lifecycle
 
-The worker calls claim_next_discovery_job(worker_id). The database function atomically claims one eligible job with SKIP LOCKED and marks it running. The worker upserts discovered objects and then marks the job completed. Failed attempts are re-queued until MAX_JOB_ATTEMPTS is reached.
+The worker claims one eligible job atomically, increments attempt_count, and marks it running. It upserts discovered objects, then marks the job completed. Failures are retried with bounded backoff until max_attempts is reached. Expired leases can be reclaimed. The database migration uses a default 10-minute lease; the worker passes its configured lease duration.
 
-The first release supports metadata_discovery only. A queued job is not a completed discovery until the worker executes it and the job status changes to completed.
+The worker only executes metadata_discovery. A queued job is not a completed discovery until its status changes to completed and discovered objects appear in the explorer/API.
 
-## Security and operational limitations
+## Security limitations and production hardening
 
-- Service-role key has broad database privileges. Use a dedicated Supabase project/role strategy and secret manager for production.
-- The REST host allowlist is mandatory. Add egress firewall controls at the hosting layer as well.
-- The CSV root should be mounted read-only and contain only approved files.
+- Supabase service-role key is highly privileged. Use a secret manager and restrict worker network access.
+- REST hostname allowlisting must be paired with deployment-level egress controls.
+- DNS is checked before the request, but a production-grade egress proxy is recommended to mitigate DNS rebinding.
+- CSV mount should be read-only and contain only approved files.
 - No secret_reference resolver exists yet; authenticated source connections are intentionally not attempted.
-- Job leases are recovered by the database claim function after expiry.
-- Configure TLS termination, network policy, log retention and alerting in the worker hosting environment.
+- The worker currently uses bounded synchronous jobs; add periodic heartbeats before allowing long-running extracts.
+- Configure TLS termination, network policy, log retention, monitoring and alerting in the worker hosting environment.
