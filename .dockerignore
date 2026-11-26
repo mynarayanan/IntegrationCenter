@@ -1,0 +1,14 @@
+.git
+.github
+node_modules
+.next
+coverage
+playwright-report
+test-results
+.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+worker/.env
+worker/.env.*
+!worker/.env.example
