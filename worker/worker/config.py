@@ -1,5 +1,8 @@
 import os
 from dataclasses import dataclass
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 
 @dataclass(frozen=True)
@@ -15,6 +18,9 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> "Settings":
+        # Load worker/.env for local development; platform-injected env vars take precedence.
+        env_path = Path(__file__).resolve().parents[1] / ".env"
+        load_dotenv(env_path, override=False)
         url = os.getenv("SUPABASE_URL", "").strip()
         key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
         if not url or not key:
