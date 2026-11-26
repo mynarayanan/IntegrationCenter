@@ -29,8 +29,9 @@ For CSV, mount an approved directory at CSV_ROOT and set connection config fileP
     pip install -r worker/requirements.txt
     uvicorn worker.api:app --app-dir worker --host 0.0.0.0 --port 8080
 
-Run the queue consumer in a second terminal with the same environment:
+Run the queue consumer in a second terminal from the worker directory:
 
+    cd worker
     python -m worker.runner
 
 The API and runner are separate processes. GET /health is liveness; GET /ready validates required configuration only.
